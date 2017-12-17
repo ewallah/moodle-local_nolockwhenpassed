@@ -21,14 +21,21 @@ class observer {
         global $DB;
         $grade = $event->get_grade();
         $grade->load_grade_item();
+        $quiz = $DB->get_record('quiz', array('id' => $grade->grade_item->iteminstance));
+        $attempts = quiz_get_user_attempts($quiz->id, $grade->userid);
+
+        // Calculate the best grade.
+        $bestgrade = quiz_calculate_best_grade($quiz, $attempts);
+
+        $gradefraction = $bestgrade / $quiz->sumgrades;
+
         if ($grade->grade_item->itemmodule == 'quiz' and $grade->grade_item->itemtype == 'mod') {
-            if (($grade->is_locked() || $grade->is_overridden()) && (($grade->rawgrade / $grade->rawgrademax) >= 0.8)){
+            if (($grade->is_locked() || $grade->is_overridden()) && $gradefraction >= 0.8){
                 //Turn overridden and locked off.
                 $grade->set_overridden(false);
                 $grade->set_locked(0);
                 $grade->update('local_nolockwhenpassed');
-                $quiz = $DB->get_record('quiz', array('id' => $grade->grade_item->iteminstance));
-                quiz_save_best_grade($quiz, $grade->userid);
+                quiz_save_best_grade($quiz, $grade->userid, $attempts);
             }
         }
     }
