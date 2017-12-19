@@ -21,6 +21,9 @@ class observer {
         global $DB;
         $grade = $event->get_grade();
         $grade->load_grade_item();
+        if ($grade->grade_item->itemtype != 'mod' || $grade->grade_item->itemmodule != 'quiz') {
+            return;
+        }
         $quiz = $DB->get_record('quiz', array('id' => $grade->grade_item->iteminstance));
         $attempts = quiz_get_user_attempts($quiz->id, $grade->userid);
 
@@ -29,14 +32,13 @@ class observer {
 
         $gradefraction = $bestgrade / $quiz->sumgrades;
 
-        if ($grade->grade_item->itemmodule == 'quiz' and $grade->grade_item->itemtype == 'mod') {
-            if (($grade->is_locked() || $grade->is_overridden()) && $gradefraction >= 0.8){
-                //Turn overridden and locked off.
-                $grade->set_overridden(false);
-                $grade->set_locked(0);
-                $grade->update('local_nolockwhenpassed');
-                quiz_save_best_grade($quiz, $grade->userid, $attempts);
-            }
+        if ($gradefraction >= 0.8 && ($grade->is_locked() || $grade->is_overridden())){
+            //Turn overridden and locked off.
+            $grade->set_overridden(false);
+            $grade->set_locked(0);
+            $grade->update('local_nolockwhenpassed');
+            //regrade quiz for this user.
+            quiz_save_best_grade($quiz, $grade->userid, $attempts);
         }
     }
 }
