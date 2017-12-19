@@ -32,13 +32,27 @@ class observer {
 
         $gradefraction = $bestgrade / $quiz->sumgrades;
 
+        self::log_to_file(compact('event', 'quiz', 'grade', 'attempts', 'bestgrade','gradefraction'));
+
         if ($gradefraction >= 0.8 && ($grade->is_locked() || $grade->is_overridden())){
             //Turn overridden and locked off.
             $grade->set_overridden(false);
             $grade->set_locked(0);
+            self::log_to_file(compact('grade'));
             $grade->update('local_nolockwhenpassed');
             //regrade quiz for this user.
-            quiz_save_best_grade($quiz, $grade->userid, $attempts);
+            quiz_update_grades($quiz, $grade->userid);
         }
+    }
+
+    static public function log_to_file($tolog) {
+        if (!is_dir('/tmp/jamiesensei')) {
+            mkdir('/tmp/jamiesensei', 0777, true);
+
+        }
+        if (!is_string($tolog)) {
+            $tolog = print_r($tolog, true);
+        }
+        file_put_contents("/tmp/jamiesensei/debugger.log", $tolog."\n", FILE_APPEND);
     }
 }
