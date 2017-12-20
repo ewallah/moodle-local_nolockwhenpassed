@@ -17,32 +17,30 @@
 namespace local_nolockwhenpassed;
 
 class observer {
-    static public function user_graded(\core\event\user_graded $event) {
+    static public function attempt_submitted(\mod_quiz\event\attempt_submitted $event) {
         global $DB;
-        $grade = $event->get_grade();
-        $grade->load_grade_item();
-        if ($grade->grade_item->itemtype != 'mod' || $grade->grade_item->itemmodule != 'quiz') {
-            return;
-        }
-        $quiz = $DB->get_record('quiz', array('id' => $grade->grade_item->iteminstance));
-        $attempts = quiz_get_user_attempts($quiz->id, $grade->userid);
+        $attempt = $event->get_record_snapshot('quiz_attempts', $event->objectid);
+        $quiz    = $event->get_record_snapshot('quiz', $attempt->quiz);
 
-        // Calculate the best grade.
-        $bestgrade = quiz_calculate_best_grade($quiz, $attempts);
-
-        $gradefraction = $bestgrade / $quiz->sumgrades;
+        $gradefraction = $attempt->sumgrades / $quiz->sumgrades;
 
         self::log_to_file(compact('event', 'quiz', 'grade', 'attempts', 'bestgrade','gradefraction'));
 
-        if ($gradefraction >= 0.8 && ($grade->is_locked() || $grade->is_overridden())){
-            //Turn overridden and locked off.
-            $grade->set_overridden(false);
-            $grade->set_locked(0);
-            self::log_to_file(compact('grade'));
-            $grade->update('local_nolockwhenpassed');
-            //regrade quiz for this user.
-            quiz_update_grades($quiz, $grade->userid);
+        if ($gradefraction >= 0.8) { //Is the new grade 80% or better?
+            //Any existing grades for this user?
+            $grades = grade_get_grades($quiz->course, 'mod', 'quiz', $quiz->id, $attempt->userid);
+            if (!empty($grades->items[0]->grades)) {
+                $grade = new \grade_grade((array)$grades->items[0]->grades);
+                if ($grade->is_locked() || $grade->is_overridden()){
+                    //Turn overridden and locked off.
+                    $grade->set_overridden(false);
+                    $grade->set_locked(0);
+                    self::log_to_file(compact('grade'));
+                    $grade->update('local_nolockwhenpassed');
+                }
+            }
         }
+
     }
 
     static public function log_to_file($tolog) {

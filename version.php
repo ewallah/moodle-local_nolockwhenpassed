@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 
-$plugin->version  = 2017121600;   // The (date) version of this plugin
+$plugin->version  = 2017122000;   // The (date) version of this plugin
 $plugin->requires = 2017051500.09;   // Requires this Moodle version
 $plugin->cron = 0;
 $plugin->component = 'local_nolockwhenpassed';
