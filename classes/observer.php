@@ -24,13 +24,16 @@ class observer {
 
         $gradefraction = $attempt->sumgrades / $quiz->sumgrades;
 
-        self::log_to_file(compact('event', 'quiz', 'grade', 'attempts', 'bestgrade','gradefraction'));
+        self::log_to_file(compact('event', 'quiz', 'grade', 'attempt', 'bestgrade','gradefraction'));
 
         if ($gradefraction >= 0.8) { //Is the new grade 80% or better?
             //Any existing grades for this user?
-            $grades = grade_get_grades($quiz->course, 'mod', 'quiz', $quiz->id, $attempt->userid);
-            if (!empty($grades->items[0]->grades)) {
-                $grade = new \grade_grade((array)$grades->items[0]->grades);
+            $gradeitem = new \grade_item(array('courseid' => $quiz->course, 'itemtype' => 'mod',
+                                                'itemmodule' => 'quiz', 'iteminstance' => $quiz->id));
+            $grade = new \grade_grade(array('itemid' => $gradeitem->id, 'userid' => $attempt->userid));
+            self::log_to_file(compact('grade'));
+            //Did we find a grade for this user? If not nothing to do.
+            if (isset($grade->id)) {
                 if ($grade->is_locked() || $grade->is_overridden()){
                     //Turn overridden and locked off.
                     $grade->set_overridden(false);
