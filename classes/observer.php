@@ -17,7 +17,7 @@
 namespace local_nolockwhenpassed;
 
 class observer {
-    static public function attempt_submitted(\mod_quiz\event\attempt_submitted $event) {
+    public static function attempt_submitted(\mod_quiz\event\attempt_submitted $event) {
         $attempt = $event->get_record_snapshot('quiz_attempts', $event->objectid);
         $quiz    = $event->get_record_snapshot('quiz', $attempt->quiz);
 
@@ -25,9 +25,9 @@ class observer {
 
         if ($gradefraction >= 0.8) { //Is the new grade 80% or better?
             //Any existing grades for this user?
-            $gradeitem = new \grade_item(array('courseid' => $quiz->course, 'itemtype' => 'mod',
-                                                'itemmodule' => 'quiz', 'iteminstance' => $quiz->id));
-            $grade = new \grade_grade(array('itemid' => $gradeitem->id, 'userid' => $attempt->userid));
+            $gradeitem = new \grade_item(['courseid' => $quiz->course, 'itemtype' => 'mod',
+                                                'itemmodule' => 'quiz', 'iteminstance' => $quiz->id]);
+            $grade = new \grade_grade(['itemid' => $gradeitem->id, 'userid' => $attempt->userid]);
             //Did we find a grade for this user? If not nothing to do.
             if (isset($grade->id)) {
                 if ($grade->is_locked() || $grade->is_overridden()){
