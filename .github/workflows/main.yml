@@ -1,0 +1,110 @@
+name: Tests
+
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+
+jobs:
+ ci:
+    runs-on: ubuntu-18.04
+
+    services:
+      mariadb:
+        image: mariadb
+        env:
+          MYSQL_USER: 'root'
+          MYSQL_ALLOW_EMPTY_PASSWORD: "true"
+        options: --health-cmd="mysqladmin ping" --health-interval 10s --health-timeout 5s --health-retries 3
+        ports:
+          - 3306:3306
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '7.4'
+            moodle-branch: 'MOODLE_310_STABLE'
+            database: mariadb
+          - php: '8.0.'
+            moodle-branch: 'MOODLE_311_STABLE'
+            database: mariadb
+
+    name: ${{ matrix.moodle-branch }}  php ${{ matrix.php }}  ${{ matrix.database }}
+
+    steps:
+      - name: checkout plugin
+        uses: actions/checkout@v2
+        with:
+          path: this-plugin
+
+      - name: setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, pgsql, mysqli, gd, zip
+
+      - name: composer
+        run: |
+          composer create-project -n --no-dev --prefer-dist moodlehq/moodle-plugin-ci ci ^3
+          echo $(cd ci/bin; pwd) >> $GITHUB_PATH
+          echo $(cd ci/vendor/bin; pwd) >> $GITHUB_PATH
+          sudo locale-gen en_AU.UTF-8
+      - name: checkout plugin
+        uses: actions/checkout@v2
+        with:
+          path: this-plugin
+
+      - name: install Moodle
+        run: moodle-plugin-ci install -v --db-host=127.0.0.1 --plugin this-plugin
+        env:
+          DB: ${{ matrix.database }}
+          MOODLE_BRANCH: ${{ matrix.moodle-branch }}
+
+      - name: phplint
+        if: $
+        run: moodle-plugin-ci phplint
+
+      - name: phpcpd
+        if: $
+        run: moodle-plugin-ci phpcpd
+
+      - name: phpmd
+        if: $
+        run: moodle-plugin-ci phpmd
+
+      - name: phpdoc
+        if: $
+        run: moodle-plugin-ci phpdoc
+
+      - name: codechecker
+        if: $
+        run: moodle-plugin-ci codechecker
+
+      - name: validate
+        if: $
+        run: moodle-plugin-ci validate
+
+      - name: savepoints
+        if: $
+        run: moodle-plugin-ci savepoints
+
+      - name: mustache
+        if: $
+        run: moodle-plugin-ci mustache
+
+      - name: grunt
+        if: $
+        run: moodle-plugin-ci grunt
+
+      - name: init phpunit
+        if: $
+        run: php admin/tool/phpunit/cli/init.php
+        working-directory: moodle
+
+      - name: phpunit quiz
+        if: $
+        run: moodle-plugin-ci phpunit mod/quiz
