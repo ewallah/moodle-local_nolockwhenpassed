@@ -59,46 +59,35 @@ jobs:
           MOODLE_BRANCH: ${{ matrix.moodle-branch }}
 
       - name: phplint
-        if: $
         run: moodle-plugin-ci phplint
 
       - name: phpcpd
-        if: $
         run: moodle-plugin-ci phpcpd
 
       - name: phpmd
-        if: $
         run: moodle-plugin-ci phpmd
 
       - name: phpdoc
-        if: $
-        run: moodle-plugin-ci phpdoc
+        run: moodle-plugin-ci phpdoc || true
 
       - name: codechecker
-        if: $
         run: moodle-plugin-ci codechecker
 
       - name: validate
-        if: $
         run: moodle-plugin-ci validate
 
       - name: savepoints
-        if: $
         run: moodle-plugin-ci savepoints
 
       - name: mustache
-        if: $
         run: moodle-plugin-ci mustache
 
       - name: grunt
-        if: $
         run: moodle-plugin-ci grunt
 
       - name: init phpunit
-        if: $
         run: php admin/tool/phpunit/cli/init.php
         working-directory: moodle
 
       - name: phpunit quiz
-        if: $
         run: moodle-plugin-ci phpunit mod/quiz
